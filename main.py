@@ -56,8 +56,8 @@ train_dataset = vectorized_dataset["test"]
 
 
 
-train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE).to(device)
-test_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE).to(device)
+train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE)
+test_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE)
 
 
 num_labels = len(id2label)
