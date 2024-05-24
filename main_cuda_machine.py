@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from transformers import AutoModelForAudioClassification
 from torch.optim import AdamW
 from transformers import get_scheduler
-from transformers import AutoFeatureExtractordevice
+from transformers import AutoFeatureExtractor
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(device)
