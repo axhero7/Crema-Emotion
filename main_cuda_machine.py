@@ -45,7 +45,7 @@ def compute_metrics(eval_pred):
 
 
 
-BATCH_SIZE = 8
+BATCH_SIZE = 32
 
 vectorized_dataset.set_format("torch")
 vectorized_dataset = vectorized_dataset.rename_column("label", "labels")
