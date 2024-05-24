@@ -1,15 +1,14 @@
 from datasets import load_dataset, ClassLabel
+import torch
 import evaluate
 import numpy as np
 from torch.utils.data import DataLoader
-import torch_xla
-import torch_xla.core.xla_model as xm
 from transformers import AutoModelForAudioClassification
 from torch.optim import AdamW
 from transformers import get_scheduler
-from transformers import AutoFeatureExtractor
+from transformers import AutoFeatureExtractordevice
 
-device = xm.xla_device()
+device = "cuda" if torch.cuda.is_available() else "cpu"
 print(device)
 dataset = load_dataset("myleslinder/crema-d", split='train')
 
@@ -92,3 +91,5 @@ for epoch in range(EPOCHS):
 
         if epoch%100 == 0:
           print(loss)
+
+torch.save(model.state_dict(), "model.pth")
