@@ -51,4 +51,4 @@ for batch in test_dataloader:
     accuracy+=acc
     print(pred, labels[i])
 accuracy/=len(test_dataloader)
-print(accuray)
+print(accuracy)
