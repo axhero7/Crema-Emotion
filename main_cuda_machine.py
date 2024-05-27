@@ -25,7 +25,7 @@ dataset = dataset.train_test_split(test_size=0.3)
 model_id = "distil-whisper/distil-medium.en"
 feature_extractor = AutoFeatureExtractor.from_pretrained(model_id, do_normalize=True)
 
-def load_dataset():
+def vectorized_dataset():
     if os.path.exists("vector.hf"):
         return load_from_disk("vector.hf")
     max_duration = 30.0
@@ -54,7 +54,7 @@ def compute_metrics(eval_pred):
 
 BATCH_SIZE = 32
 
-vectorized_dataset = load_dataset()
+vectorized_dataset = vectorized_dataset()
 
 vectorized_dataset.set_format("torch")
 vectorized_dataset = vectorized_dataset.rename_column("label", "labels")
