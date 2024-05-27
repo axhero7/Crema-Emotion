@@ -1,4 +1,4 @@
-from datasets import load_dataset, ClassLabel
+from datasets import load_dataset, ClassLabel, load_from_disk
 import torch
 import evaluate
 import numpy as np
@@ -7,6 +7,7 @@ from transformers import AutoModelForAudioClassification
 from torch.optim import AdamW
 from transformers import get_scheduler
 from transformers import AutoFeatureExtractor
+import os
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(device)
@@ -24,18 +25,24 @@ dataset = dataset.train_test_split(test_size=0.3)
 model_id = "distil-whisper/distil-medium.en"
 feature_extractor = AutoFeatureExtractor.from_pretrained(model_id, do_normalize=True)
 
-max_duration = 30.0
+def load_dataset():
+    if os.path.exists("vector.hf"):
+        return load_from_disk("vector.hf")
+    max_duration = 30.0
 
-def process(ds):
-    audio_arrays = [x["array"] for x in ds["audio"]]
-    inputs = feature_extractor( #pass into whisper model
-        audio_arrays,
-        sampling_rate=feature_extractor.sampling_rate, #set to predetermined 16k Hz
-        max_length=int(feature_extractor.sampling_rate * max_duration), #find the longest clip (this should be adjusted if dataset includes extremely long clips)
-        truncation=True,
-    )
-    return inputs
-vectorized_dataset = dataset.map(process, remove_columns="audio", batched=True, batch_size=16, num_proc=1,)
+    def process(ds):
+        audio_arrays = [x["array"] for x in ds["audio"]]
+        inputs = feature_extractor( #pass into whisper model
+            audio_arrays,
+            sampling_rate=feature_extractor.sampling_rate, #set to predetermined 16k Hz
+            max_length=int(feature_extractor.sampling_rate * max_duration), #find the longest clip (this should be adjusted if dataset includes extremely long clips)
+            truncation=True,
+        )
+        return inputs
+    vectorized_dataset = dataset.map(process, remove_columns="audio", batched=True, batch_size=16, num_proc=1,)
+    vectorized_dataset.save_to_disk("vector.hf")
+    return vectorized_dataset
+
 
 accuracy = evaluate.load("accuracy")
 
@@ -46,6 +53,8 @@ def compute_metrics(eval_pred):
 
 
 BATCH_SIZE = 32
+
+vectorized_dataset = load_dataset()
 
 vectorized_dataset.set_format("torch")
 vectorized_dataset = vectorized_dataset.rename_column("label", "labels")
