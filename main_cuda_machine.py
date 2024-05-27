@@ -10,7 +10,7 @@ from transformers import AutoFeatureExtractor
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(device)
-dataset = load_dataset("myleslinder/crema-d", split='train')
+dataset = load_dataset("myleslinder/crema-d", trust_remote_code=True, split='train')
 
 id2label = {'0':'anger', '1': 'disgust','2': 'fear', '3': 'happy', '4': 'neutral', '5': 'sad'}
 label2id = dict()
