@@ -51,12 +51,12 @@ vectorized_dataset.set_format("torch")
 vectorized_dataset = vectorized_dataset.rename_column("label", "labels")
 
 train_dataset = vectorized_dataset["train"]
-train_dataset = vectorized_dataset["test"]
+test_dataset = vectorized_dataset["test"]
 
 
 
 train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE)
-test_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE)
+test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
 
 
 num_labels = len(id2label)
@@ -93,3 +93,4 @@ for epoch in range(EPOCHS):
           print(loss)
 
 torch.save(model.state_dict(), "model.pth")
+
