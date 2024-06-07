@@ -65,9 +65,7 @@ accuracy = 0
 for batch in test_dataloader:
     batch = {k: v.to(device) for k, v in batch.items()}
     output_seq = model(**batch)
-    output_tensor = output_seq[1]
-    print(torch.argmax(output_tensor, dim=1))
-    print(output_tensor.argmax(dim=1))
+    output_tensor = output_seq[1].argmax(dim=1)
     labels = batch['labels']
     #print(f"Output sequence: {output_seq}\n\nFirst is {output_seq[3]}\n\nLabels are:{labels}")
     count = 0
