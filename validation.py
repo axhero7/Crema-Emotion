@@ -2,6 +2,7 @@ from datasets import load_dataset
 import torch
 import os
 from transformers import AutoFeatureExtractor
+from datasets import load_dataset, ClassLabel, load_from_disk
 # from main_cuda_machine import vectorized_dataset
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
