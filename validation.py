@@ -20,8 +20,22 @@ feature_extractor = AutoFeatureExtractor.from_pretrained(model_id, do_normalize=
 
 max_duration = 30.0
 
-vectorized_dataset = vectorized_dataset()
-
+if os.path.exists("vector.hf"):
+    vectorized_dataset = load_from_disk("vector.hf")
+else:
+    max_duration = 30.0
+    def process(ds):
+        audio_arrays = [x["array"] for x in ds["audio"]]
+        inputs = feature_extractor( #pass into whisper model
+            audio_arrays,
+            sampling_rate=feature_extractor.sampling_rate, #set to predetermined 16k Hz
+            max_length=int(feature_extractor.sampling_rate * max_duration), #find the longest clip (this should be adjusted if dataset includes extremely long clips)
+            truncation=True,
+        )
+        return inputs
+    vectorized_dataset = dataset.map(process, remove_columns="audio", batched=True, batch_size=16, num_proc=1,)
+    vectorized_dataset.save_to_disk("vector.hf")
+    
 vectorized_dataset.set_format("torch")
 vectorized_dataset = vectorized_dataset.rename_column("label", "labels")
 
