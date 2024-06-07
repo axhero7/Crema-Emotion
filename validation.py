@@ -67,7 +67,7 @@ for batch in test_dataloader:
     output_seq = model(**batch)
     
     output_tensor = output_seq[0]
-    labels = batch['labels
+    labels = batch['labels']
     print(f"Output sequence: {output_seq}\n\nFirst is {output_seq[0]}\n\nLabels are:{labels}")
     count = 0
     correct = torch.eq(labels, output_tensor).sum().item() # torch.eq() calculates where two tensors are equal
