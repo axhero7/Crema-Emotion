@@ -9,7 +9,7 @@ from transformers import AutoModelForAudioClassification
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-dataset = load_dataset("myleslinder/crema-d", split='train')
+dataset = load_dataset("myleslinder/crema-d", trust_remote_code=True, split='train')
 
 id2label = {'0':'anger', '1': 'disgust','2': 'fear', '3': 'happy', '4': 'neutral', '5': 'sad'}
 label2id = dict()
@@ -57,7 +57,7 @@ model = AutoModelForAudioClassification.from_pretrained(
     model_id, num_labels=num_labels, label2id=label2id, id2label=id2label
 )
 
-model.load_state_dict(torch.load("model.pth"))
+model.load_state_dict(torch.load("model.pth")).to(device)
 model.eval()
 
 accuracy = 0
