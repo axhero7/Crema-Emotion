@@ -46,7 +46,7 @@ vectorized_dataset = vectorized_dataset.rename_column("label", "labels")
 train_dataset = vectorized_dataset["train"]
 test_dataset = vectorized_dataset["test"]
 
-
+BATCH_SIZE=32
 
 train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE)
 test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
