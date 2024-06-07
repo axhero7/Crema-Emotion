@@ -4,6 +4,7 @@ import os
 from transformers import AutoFeatureExtractor
 from torch.utils.data import DataLoader
 from datasets import load_dataset, ClassLabel, load_from_disk
+from transformers import AutoModelForAudioClassification
 # from main_cuda_machine import vectorized_dataset
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -51,6 +52,9 @@ BATCH_SIZE=32
 train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE)
 test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
 
+model = AutoModelForAudioClassification.from_pretrained(
+    model_id, num_labels=num_labels, label2id=label2id, id2label=id2label
+)
 
 model.load_state_dict(torch.load("model.pth"))
 model.eval()
