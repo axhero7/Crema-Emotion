@@ -52,6 +52,7 @@ BATCH_SIZE=32
 train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE)
 test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
 
+num_labels = len(id2label)
 model = AutoModelForAudioClassification.from_pretrained(
     model_id, num_labels=num_labels, label2id=label2id, id2label=id2label
 )
