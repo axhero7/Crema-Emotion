@@ -70,7 +70,7 @@ for batch in test_dataloader:
     labels = batch['labels']
     count = 0
     correct = torch.eq(labels, output_tensor).sum().item() # torch.eq() calculates where two tensors are equal
-    acc = (correct / len(y_pred)) * 100 
+    acc = (correct / len(output_tensor)) * 100 
     accuracy+=acc
     print(pred, labels[i])
 accuracy/=len(test_dataloader)
