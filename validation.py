@@ -56,8 +56,8 @@ num_labels = len(id2label)
 model = AutoModelForAudioClassification.from_pretrained(
     model_id, num_labels=num_labels, label2id=label2id, id2label=id2label
 )
-
-model.load_state_dict(torch.load("model.pth")).to(device)
+model.to(device)
+model.load_state_dict(torch.load("model.pth"))
 model.eval()
 
 accuracy = 0
