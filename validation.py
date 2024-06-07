@@ -65,7 +65,7 @@ accuracy = 0
 for batch in test_dataloader:
     batch = {k: v.to(device) for k, v in batch.items()}
     output_seq = model(**batch)
-    print("output seq length is ", len(output_seq)) 
+    print(output_seq[2])
     output_tensor = output_seq[0]
     labels = batch['labels']
     print(f"Output sequence: {output_seq}\n\nFirst is {output_seq[3]}\n\nLabels are:{labels}")
