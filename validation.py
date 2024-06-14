@@ -11,7 +11,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 dataset = load_dataset("myleslinder/crema-d", trust_remote_code=True, split='train')
 
-id2label = {'0':'anger', '1': 'disgust','2': 'fear', '3': 'happy', '4': 'neutral', '5': 'sad'}
+id2label = {'0':'neutral', '1': 'happy','2': 'sad', '3': 'anger', '4': 'fear', '5': 'disgust'}
 label2id = dict()
 for i in id2label:
     label2id[id2label[str(i)]] = str(i)
