@@ -9,6 +9,8 @@ from transformers import get_scheduler
 from transformers import AutoFeatureExtractor
 import os
 
+RANDOM_SEED=42
+
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(device)
 dataset = load_dataset("myleslinder/crema-d", trust_remote_code=True, split='train')
@@ -19,7 +21,7 @@ for i in id2label:
     label2id[id2label[str(i)]] = str(i)
 
 dataset = dataset.select_columns(['audio', 'label']) #This is simple classifcation task, whisper is already trained so no need for sentence.
-dataset = dataset.train_test_split(test_size=0.3)
+dataset = dataset.train_test_split(test_size=0.3, seed=RANDOM_SEED)
 
 
 model_id = "distil-whisper/distil-medium.en"
