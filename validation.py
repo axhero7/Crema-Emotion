@@ -1,77 +1,125 @@
-from datasets import load_dataset
-import torch
-import os
-from transformers import AutoFeatureExtractor
-from torch.utils.data import DataLoader
 from datasets import load_dataset, ClassLabel, load_from_disk
+import torch
+import numpy as np
+from torch.utils.data import DataLoader
 from transformers import AutoModelForAudioClassification
-# from main_cuda_machine import vectorized_dataset
+import transformers
+from utils.dataset_utils import CremaDataset
+import os
+from tqdm.auto import tqdm
+import wandb
+from sklearn.metrics import classification_report, confusion_matrix, f1_score, accuracy_score
+from fairlearn.metrics import MetricFrame, demographic_parity_difference, equalized_odds_difference
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
+print(device)
 
-dataset = load_dataset("myleslinder/crema-d", trust_remote_code=True, split='train')
-
-id2label = {'0':'neutral', '1': 'happy','2': 'sad', '3': 'anger', '4': 'fear', '5': 'disgust'}
-label2id = dict()
-for i in id2label:
-    label2id[id2label[str(i)]] = str(i)
-
-dataset = dataset.select_columns(['audio', 'label']) #This is simple classifcation task, whisper is already trained so no need for sentence.
-dataset = dataset.train_test_split(test_size=0.3)
+crema_dataset = CremaDataset("distil-whisper/distil-medium.en")
+crema_dataset.set_vector("actor-vector.hf", True)
 
 
-model_id = "distil-whisper/distil-medium.en"
-feature_extractor = AutoFeatureExtractor.from_pretrained(model_id, do_normalize=True)
 
-max_duration = 30.0
+BATCH_SIZE = 32
 
-if os.path.exists("vector.hf"):
-    vectorized_dataset = load_from_disk("vector.hf")
-else:
-    max_duration = 30.0
-    def process(ds):
-        audio_arrays = [x["array"] for x in ds["audio"]]
-        inputs = feature_extractor( #pass into whisper model
-            audio_arrays,
-            sampling_rate=feature_extractor.sampling_rate, #set to predetermined 16k Hz
-            max_length=int(feature_extractor.sampling_rate * max_duration), #find the longest clip (this should be adjusted if dataset includes extremely long clips)
-            truncation=True,
-        )
-        return inputs
-    vectorized_dataset = dataset.map(process, remove_columns="audio", batched=True, batch_size=16, num_proc=1,)
-    vectorized_dataset.save_to_disk("vector.hf")
-    
-vectorized_dataset.set_format("torch")
-vectorized_dataset = vectorized_dataset.rename_column("label", "labels")
+torch.manual_seed(42)
+test_dataloader = DataLoader(crema_dataset.test_dataset, batch_size=BATCH_SIZE)
 
-train_dataset = vectorized_dataset["train"]
-test_dataset = vectorized_dataset["test"]
 
-BATCH_SIZE=8
+num_labels = len(crema_dataset.id2label)
 
-train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE)
-test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
-
-num_labels = len(id2label)
+transformers.set_seed(42)
 model = AutoModelForAudioClassification.from_pretrained(
-    model_id, num_labels=num_labels, label2id=label2id, id2label=id2label
+    crema_dataset.model_id, num_labels=num_labels, label2id=crema_dataset.label2id, id2label=crema_dataset.id2label
 )
+
+
+EPOCHS=1
+
+num_training_steps = EPOCHS * len(test_dataloader)
 model.to(device)
-model.load_state_dict(torch.load("model.pth"))
+
+progress_bar = tqdm(range(num_training_steps))
+
+wandb.init(project="crema_evaluation_with_fairness", 
+           name="evaluation_run",
+           config={})
+
+validation_results = {"actor_id": [], "true_labels": [], "predictions": []}
+    
+# Get predictions on test data
 model.eval()
-
-accuracy = 0
-
 for batch in test_dataloader:
-    batch = {k: v.to(device) for k, v in batch.items()}
-    output_seq = model(**batch)
-    output_tensor = output_seq[1].argmax(dim=1)
-    labels = batch['labels']
-    #print(f"Output sequence: {output_seq}\n\nFirst is {output_seq[3]}\n\nLabels are:{labels}")
-    count = 0
-    correct = torch.eq(labels, output_tensor).sum().item() # torch.eq() calculates where two tensors are equal
+    actor_ids = batch["actor_id"]  # Get actor IDs from batch (replace with actual batch key if different)
+    true_labels_batch = batch["labels"].numpy()
+    
+    with torch.no_grad():
+        outputs = model(**batch)
+        preds = outputs.logits.argmax(dim=-1).numpy()
 
-    acc = (correct / len(output_tensor)) * 100 
-    accuracy+=acc
-accuracy/=len(test_dataloader)
-print(accuracy)
+    # Append results to dictionary
+    validation_results["actor_id"].extend(actor_ids)
+    validation_results["true_labels"].extend(true_labels_batch)
+    validation_results["predictions"].extend(preds)
+
+
+
+
+results_df = pd.DataFrame(validation_results)
+
+demographics_path =  "VideoDemographics.csv"
+demographics_df = pd.read_csv(demographics_path)
+
+# Merge predictions with demographic info using actor ID
+merged_data = results_df.merge(demographics_df, on="actor_id")
+
+true_labels = merged_data["true_labels"]
+predictions = merged_data["predictions"]
+
+# Classification Report
+report = classification_report(true_labels, predictions, output_dict=True)
+wandb.log({"classification_report": report})
+
+# Confusion Matrix
+conf_matrix = confusion_matrix(true_labels, predictions)
+fig, ax = plt.subplots(figsize=(8, 6))
+sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues",
+            xticklabels=np.unique(true_labels), yticklabels=np.unique(true_labels))
+plt.xlabel("Predicted Labels")
+plt.ylabel("True Labels")
+plt.title("Confusion Matrix")
+wandb.log({"confusion_matrix": wandb.Image(fig)})
+plt.close(fig)
+
+
+sensitive_features = merged_data["Race"]  # Replace with demographic column
+metric_frame = MetricFrame(
+    metrics={
+        'accuracy': accuracy_score,
+        'f1_score': lambda y_true, y_pred: f1_score(y_true, y_pred, average='weighted')
+    },
+    y_true=true_labels,
+    y_pred=predictions,
+    sensitive_features=sensitive_features
+)
+
+demographic_parity_diff = demographic_parity_difference(
+    true_labels, predictions, sensitive_features=sensitive_features
+)
+equalized_odds_diff = equalized_odds_difference(
+    true_labels, predictions, sensitive_features=sensitive_features
+)
+
+# Log fairness metrics
+wandb.log({
+    "fairness_metrics": {
+        "demographic_parity_difference": demographic_parity_diff,
+        "equalized_odds_difference": equalized_odds_diff
+    },
+    "group_metrics": metric_frame.by_group.to_dict()
+})
+
+print("Final metrics and fairness assessment logged.")
+wandb.finish()
