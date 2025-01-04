@@ -6,8 +6,6 @@ numpy==1.24.4
 pandas==2.0.3
 scikit_learn==1.2.2
 seaborn==0.13.2
-torch==2.0.1
-torch_xla==2.5.1
 torchaudio==2.0.2
 torchsummary==1.5.1
 tqdm==4.66.1
