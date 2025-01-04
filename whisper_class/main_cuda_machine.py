@@ -37,7 +37,7 @@ model = AutoModelForAudioClassification.from_pretrained(
 )
 
 optimizer = AdamW(model.parameters(), lr=1e-5)
-EPOCHS = 2
+EPOCHS = 10
 
 num_training_steps = EPOCHS * len(train_dataloader)
 lr_scheduler = get_scheduler(name="linear", optimizer=optimizer, num_warmup_steps=0, num_training_steps=num_training_steps)

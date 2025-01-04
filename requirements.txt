@@ -9,3 +9,4 @@ seaborn==0.13.2
 torchsummary==1.5.1
 tqdm==4.67.1
 transformers==4.47.1
+librosa==0.10.2.post1
