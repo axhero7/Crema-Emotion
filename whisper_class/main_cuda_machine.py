@@ -1,6 +1,5 @@
 from datasets import load_dataset, ClassLabel, load_from_disk
 import torch
-import evaluate
 import numpy as np
 from torch.utils.data import DataLoader
 from transformers import AutoModelForAudioClassification
@@ -23,7 +22,7 @@ crema_dataset.set_vector("actor-vector.hf", True)
 
 
 
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 
 torch.manual_seed(42)
 train_dataloader = DataLoader(crema_dataset.train_dataset, shuffle=True, batch_size=BATCH_SIZE)
@@ -48,14 +47,14 @@ model.to(device)
 progress_bar = tqdm(range(num_training_steps))
 
 wandb.init(project="crema_evaluation_with_fairness", 
-           name="evaluation_run",
+           name="train_run",
            config={})
 
 model.train()
 for epoch in range(EPOCHS):
-    for batch in train_dataloader:
-        batch = {k: v.to(device) for k, v in batch.items()} # convert all the array's to cuda
-        outputs = model(**batch)
+    for idx, batch in enumerate(train_dataloader):
+        inputs = {"input_features": batch["input_features"].to(device), "labels": batch["labels"].to(device)}
+        outputs = model(**inputs)
         loss = outputs.loss
         loss.backward()
 
@@ -63,7 +62,8 @@ for epoch in range(EPOCHS):
         lr_scheduler.step()
         optimizer.zero_grad()
         progress_bar.update(1)
-
+        if idx%50==0:
+            print("idx: ", idx, " loss: ", loss)
         wandb.log({
             "train_loss": loss.item(),
             "learning_rate": lr_scheduler.get_last_lr()[0]  # Extract the current learning rate
@@ -72,11 +72,12 @@ for epoch in range(EPOCHS):
     model.eval()
     true_labels, predictions = [], []
     for batch in test_dataloader:
-        with torch.inference():
-            outputs = model(**batch)
+        with torch.inference_mode():
+            inputs = {"input_features": batch["input_features"].to(device), "labels": batch["labels"].to(device)}
+            outputs = model(**inputs)
             preds = outputs.logits.argmax(dim=-1)
-            true_labels.extend(batch["labels"].numpy())
-            predictions.extend(preds.numpy())
+            true_labels.extend(batch["labels"].cpu().numpy())
+            predictions.extend(preds.cpu().numpy())
     val_accuracy = accuracy_score(true_labels, predictions)
     val_f1 = f1_score(true_labels, predictions, average="weighted")
     wandb.log({
@@ -84,5 +85,5 @@ for epoch in range(EPOCHS):
             "val_f1_score": val_f1,
             "epoch": epoch + 1
     })
-torch.save(model.state_dict(), "model.pth")
+torch.save(model.state_dict(), "model_latest.pth")
 
