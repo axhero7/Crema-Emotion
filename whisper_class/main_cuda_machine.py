@@ -22,7 +22,7 @@ crema_dataset.set_vector("actor-vector.hf", True)
 
 
 
-BATCH_SIZE = 4
+BATCH_SIZE = 16
 
 torch.manual_seed(42)
 train_dataloader = DataLoader(crema_dataset.train_dataset, shuffle=True, batch_size=BATCH_SIZE)
