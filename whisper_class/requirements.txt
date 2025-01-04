@@ -1,0 +1,13 @@
+datasets==2.18.0
+evaluate==0.4.3
+fairlearn==0.12.0
+matplotlib==3.7.2
+numpy==1.23.5
+pandas==2.0.3
+scikit_learn==1.2.2
+seaborn==0.13.2
+torch==2.0.1
+torch_xla==2.5.1
+tqdm==4.66.1
+transformers==4.39.3
+wandb==0.19.1

@@ -22,7 +22,7 @@ crema_dataset.set_vector("actor-vector.hf", True)
 
 
 
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 
 torch.manual_seed(42)
 test_dataloader = DataLoader(crema_dataset.test_dataset, batch_size=BATCH_SIZE)
@@ -47,23 +47,25 @@ wandb.init(project="crema_evaluation_with_fairness",
            name="evaluation_run",
            config={})
 
-validation_results = {"actor_id": [], "true_labels": [], "predictions": []}
+validation_results = {"ActorID": [], "true_labels": [], "predictions": []}
     
 # Get predictions on test data
 model.eval()
 for batch in test_dataloader:
-    actor_ids = batch["actor_id"]  # Get actor IDs from batch (replace with actual batch key if different)
+    actor_ids = batch["path"]
     true_labels_batch = batch["labels"].numpy()
     
     with torch.no_grad():
-        outputs = model(**batch)
-        preds = outputs.logits.argmax(dim=-1).numpy()
+        inputs = {"input_features": batch["input_features"].to(device), "labels": batch["labels"].to(device)}
+        outputs = model(**inputs)
+        preds = outputs.logits.argmax(dim=-1).cpu().numpy()
 
     # Append results to dictionary
-    validation_results["actor_id"].extend(actor_ids)
+    validation_results["ActorID"].extend(actor_ids)
     validation_results["true_labels"].extend(true_labels_batch)
     validation_results["predictions"].extend(preds)
-
+    
+    progress_bar.update(1)
 
 
 
@@ -73,7 +75,7 @@ demographics_path =  "VideoDemographics.csv"
 demographics_df = pd.read_csv(demographics_path)
 
 # Merge predictions with demographic info using actor ID
-merged_data = results_df.merge(demographics_df, on="actor_id")
+merged_data = results_df.merge(demographics_df, on="ActorID")
 
 true_labels = merged_data["true_labels"]
 predictions = merged_data["predictions"]
