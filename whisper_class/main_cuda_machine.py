@@ -60,7 +60,7 @@ for epoch in range(EPOCHS):
 
         optimizer.step()
         lr_scheduler.step()
-        optimizer.zero_grad()
+        optimizer.zero_grad(set_to_none=True)
         progress_bar.update(1)
         if idx%50==0:
             print("idx: ", idx, " loss: ", loss)
