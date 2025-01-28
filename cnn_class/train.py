@@ -47,7 +47,7 @@ def test_step(model, data, loss_fn, device, lr_scheduler, epoch):
             loss = loss_fn(y_pred, label)
             outputs = nn.functional.softmax(y_pred,0)
             true_labels.extend(label.cpu().detach().numpy())
-            predictions.extend(outputs.cpu().detach()..numpy())
+            predictions.extend(outputs.cpu().detach().numpy())
             if index % 30 == 0:
                 print(f"test loss: {loss.item()}")
                 print(lr_scheduler.get_last_lr()[0])
