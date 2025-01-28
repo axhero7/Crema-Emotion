@@ -118,7 +118,7 @@ def objective(trial):
             for inputs, labels in test_dataloader:
                 outputs = model(inputs)
                 preds = torch.argmax(outputs, dim=1)
-                correct += (preds == labels).sum().item()
+                correct += (preds.cpu().numpy() == labels.cpu().numpy()).sum().item()
                 total += labels.size(0)
         
         val_acc = 100 * correct / total
