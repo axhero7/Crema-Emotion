@@ -46,16 +46,17 @@ def test_step(model, data, loss_fn, device, lr_scheduler, epoch):
             y_pred = model(input)
             loss = loss_fn(y_pred, label)
             outputs = nn.functional.softmax(y_pred,0)
-            true_labels.extend(label.cpu().detach().numpy())
-            predictions.extend(outputs.cpu().detach().numpy())
-            if index % 30 == 0:
-                print(f"test loss: {loss.item()}")
-                print(lr_scheduler.get_last_lr()[0])
+            outputs = outputs.argmax(dim=1)
+            true_labels.extend(list(label.cpu().detach()))
+            predictions.extend(list(outputs.cpu().detach()))
             wandb.log({
                 "val_loss": loss.item()
             })
+        print(len(true_labels), true_labels[0])
+        print(len(predictions), predictions[0])
         val_accuracy = accuracy_score(true_labels, predictions)
         val_f1 = f1_score(true_labels, predictions, average="weighted")
+        print(f"val acc: {val_accuracy}, val f1: {val_f1}")
         wandb.log({
                 "val_accuracy": val_accuracy,
                 "val_f1_score": val_f1,
