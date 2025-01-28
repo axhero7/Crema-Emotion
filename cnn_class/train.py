@@ -64,7 +64,7 @@ def test_step(model, data, loss_fn, device, lr_scheduler, epoch):
 def train(model, train_data, test_data, loss_fn, optim, device, epochs):
     for i in range(epochs):
         print("epoch: ", i)
-        train_step(model, train_data, loss_fn, optim, device)
+        train_step(model, train_data, loss_fn, optim, device, lr_scheduler)
         test_step(model, test_data, loss_fn, device, i)
 
 
