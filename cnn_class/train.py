@@ -7,6 +7,7 @@ import torchaudio
 from transformers import get_scheduler
 import optuna
 import wandb
+import tqdm
 from sklearn.metrics import classification_report, confusion_matrix, f1_score, accuracy_score
 
 def train_step(model, data, loss_fn, optim, device, lr_scheduler):
