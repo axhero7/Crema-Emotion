@@ -38,26 +38,28 @@ def train_step(model, data, loss_fn, optim, device, lr_scheduler):
             # print(lr_scheduler.get_last_lr()[0])
 def test_step(model, data, loss_fn, device, lr_scheduler, epoch):
     true_labels, predictions = [], []
-    for index, (input, label) in enumerate(data):
-        input, label = input.to(device), label.to(device)
+    with torch.no_grad():
+        model.eval()
+        for index, (input, label) in enumerate(data):
+            input, label = input.to(device), label.to(device)
 
-        y_pred = model(input)
-        loss = loss_fn(y_pred, label)
-        outputs = nn.functional.softmax(y_pred,0)
-        true_labels.extend(label.cpu().numpy())
-        predictions.extend(outputs.cpu().numpy())
-        if index % 30 == 0:
-            print(f"test loss: {loss.item()}")
-            print(lr_scheduler.get_last_lr()[0])
+            y_pred = model(input)
+            loss = loss_fn(y_pred, label)
+            outputs = nn.functional.softmax(y_pred,0)
+            true_labels.extend(label.cpu().detach().numpy())
+            predictions.extend(outputs.cpu().detach()..numpy())
+            if index % 30 == 0:
+                print(f"test loss: {loss.item()}")
+                print(lr_scheduler.get_last_lr()[0])
+            wandb.log({
+                "val_loss": loss.item()
+            })
+        val_accuracy = accuracy_score(true_labels, predictions)
+        val_f1 = f1_score(true_labels, predictions, average="weighted")
         wandb.log({
-            "val_loss": loss.item()
-        })
-    val_accuracy = accuracy_score(true_labels, predictions)
-    val_f1 = f1_score(true_labels, predictions, average="weighted")
-    wandb.log({
-            "val_accuracy": val_accuracy,
-            "val_f1_score": val_f1,
-            "epoch": epoch + 1
+                "val_accuracy": val_accuracy,
+                "val_f1_score": val_f1,
+                "epoch": epoch + 1
     })
 
 
