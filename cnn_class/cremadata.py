@@ -62,31 +62,14 @@ class CremaSoundDataset(Dataset):
             last_dim_padding = 0, num_missing_samples
             signal = torch.nn.functional.pad(signal, last_dim_padding)
         return signal
+    
+    def create_data_loader(dataset, batch_size, train_ratio, device):
+        train_ratio = 0.8
+        train_size = int(train_ratio * len(dataset))
+        test_size = len(dataset) - train_size
 
-if __name__ == "__main__":
-    ANNOTATIONS_FILE = "SentenceFilenames.csv"
-    AUDIO_DIR = "AudioWAV"
-    SAMPLE_RATE = 16000
-    NUM_SAMPLES = SAMPLE_RATE*4
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    print("Device: ", device)
-
-    mel_spectogram = torchaudio.transforms.MelSpectrogram(
-        sample_rate=SAMPLE_RATE,
-        n_fft=1024,
-        hop_length=512,
-        n_mels=64
-    )
-
-    usd = CremaSoundDataset(ANNOTATIONS_FILE,
-                            AUDIO_DIR,
-                            mel_spectogram,
-                            SAMPLE_RATE,
-                            NUM_SAMPLES,
-                            device)
-
-    print(f"There are {len(usd)} samples in the dataset. ")
-
-    signal, label = usd[1]
+        torch.manual_seed(42)
+        train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
+        train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=10, shuffle=True)
+        test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=10, shuffle=False)
+        return train_dataloader, test_dataloader
