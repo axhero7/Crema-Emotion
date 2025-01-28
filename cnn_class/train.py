@@ -6,6 +6,7 @@ from cremanet import CNN_Net, OptimizedCremaNet
 import torchaudio
 from transformers import get_scheduler
 import optuna
+import wandb
 from sklearn.metrics import classification_report, confusion_matrix, f1_score, accuracy_score
 
 def train_step(model, data, loss_fn, optim, device, lr_scheduler):
@@ -19,11 +20,11 @@ def train_step(model, data, loss_fn, optim, device, lr_scheduler):
         if lr_scheduler != None: lr_scheduler.step() 
 
         optim.zero_grad()
-        # progress_bar.update(1)
-        # wandb.log({
-        #     "train_loss": loss.item(),
-        #     "learning_rate": lr_scheduler.get_last_lr()[0] 
-        # })
+        progress_bar.update(1)
+        wandb.log({
+            "train_loss": loss.item(),
+            "learning_rate": lr_scheduler.get_last_lr()[0] 
+        })
         
         if index % 30 == 0:
             outputs = nn.functional.softmax(y_pred,dim=1)
@@ -139,7 +140,7 @@ def objective(trial):
 
 
 if __name__ == "__main__":
-    if True:
+    if False:
         study = optuna.create_study(
             direction='maximize',
             sampler=optuna.samplers.TPESampler(),
