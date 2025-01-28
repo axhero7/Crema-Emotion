@@ -42,9 +42,9 @@ def test_step(model, data, device, epoch):
             preds = outputs.logits.argmax(dim=-1)
             true_labels.extend(batch["labels"].cpu().numpy())
             predictions.extend(preds.cpu().numpy())
-            # wandb.log({
-            #     "val_loss": loss.item()
-            # })
+            wandb.log({
+                "val_loss": loss.item()
+            })
     val_accuracy = accuracy_score(true_labels, predictions)
     val_f1 = f1_score(true_labels, predictions, average="weighted")
     wandb.log({

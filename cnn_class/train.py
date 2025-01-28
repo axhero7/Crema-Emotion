@@ -5,8 +5,8 @@ from cremadata import CremaSoundDataset
 from cremanet import CNN_Net, OptimizedCremaNet
 import torchaudio
 from transformers import get_scheduler
+# import wandb
 import optuna
-import wandb
 from tqdm import tqdm
 from sklearn.metrics import classification_report, confusion_matrix, f1_score, accuracy_score
 
@@ -21,11 +21,11 @@ def train_step(model, data, loss_fn, optim, device, lr_scheduler):
         if lr_scheduler != None: lr_scheduler.step() 
 
         optim.zero_grad()
-        progress_bar.update(1)
-        wandb.log({
-            "train_loss": loss.item(),
-            "learning_rate": lr_scheduler.get_last_lr()[0] 
-        })
+        # progress_bar.update(1)
+        # wandb.log({
+        #     "train_loss": loss.item(),
+        #     "learning_rate": lr_scheduler.get_last_lr()[0] 
+        # })
         
         if index % 30 == 0:
             outputs = nn.functional.softmax(y_pred,dim=1)
@@ -69,7 +69,6 @@ def train(model, train_data, test_data, loss_fn, optim, device, epochs):
         print("epoch: ", i)
         train_step(model, train_data, loss_fn, optim, device, lr_scheduler)
         test_step(model, test_data, loss_fn, device, lr_scheduler, i)
-
 
 def objective(trial):
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -142,72 +141,70 @@ def objective(trial):
     return best_acc
 
 
+def train_without_optim():
+    BATCH_SIZE = 16
+    EPOCHS = 40
+    LEARNING_RATE = 1e-3
+    ANNOTATIONS_FILE = "SentenceFilenames.csv"
+    AUDIO_DIR = "AudioWAV"
+    SAMPLE_RATE = 16000
+    NUM_SAMPLES = SAMPLE_RATE*4
 
-if __name__ == "__main__":
-    if False:
-        study = optuna.create_study(
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    print("Device: ", device)
+
+
+
+    mel_spectogram = torchaudio.transforms.MelSpectrogram(
+        sample_rate=SAMPLE_RATE,
+        n_fft=1024,
+        hop_length=512,
+        n_mels=64
+    )
+
+    usd = CremaSoundDataset(ANNOTATIONS_FILE,
+                            AUDIO_DIR,
+                            mel_spectogram,
+                            SAMPLE_RATE,
+                            NUM_SAMPLES,
+                            device)
+    torch.manual_seed(42)
+    train_dataloader, test_dataloader = CremaSoundDataset.create_data_loader(usd, batch_size=BATCH_SIZE, train_ratio=0.7, device=device)
+
+    torch.manual_seed(42)
+    model_0 = CNN_Net().to(device)
+
+    loss_fn = nn.CrossEntropyLoss()
+    optimizer = torch.optim.AdamW(model_0.parameters(), lr=1e-3)
+
+    num_training_steps = EPOCHS * len(train_dataloader)
+    lr_scheduler = get_scheduler(name="linear", optimizer=optimizer, num_warmup_steps=0, num_training_steps=num_training_steps)
+    progress_bar = tqdm(range(num_training_steps))
+
+
+    wandb.init(project="crema_evaluation_with_fairness", 
+            name="cnn based train run",
+            config={})
+    model_0.train()
+    train(model_0, train_dataloader, train_dataloader, loss_fn, optimizer, device, EPOCHS)
+    torch.save(model_0.state_dict(), "cnn_param.pth")
+
+def train_with_optim():
+    study = optuna.create_study(
             direction='maximize',
             sampler=optuna.samplers.TPESampler(),
             pruner=optuna.pruners.MedianPruner()
         )
 
-        study.optimize(objective, n_trials=50, timeout=3600*6)
+    study.optimize(objective, n_trials=50, timeout=3600*6)
 
-        print("Best trial:")
-        trial = study.best_trial
-        print(f"  Value (Accuracy): {trial.value:.2f}%")
-        print("  Params:")
-        for key, value in trial.params.items():
-            print(f"    {key}: {value}")
+    print("Best trial:")
+    trial = study.best_trial
+    print(f"  Value (Accuracy): {trial.value:.2f}%")
+    print("  Params:")
+    for key, value in trial.params.items():
+        print(f"    {key}: {value}")
 
-        # Train final model with best params
-        # Use best_params from study to train final model...
-
-    else:
-        BATCH_SIZE = 16
-        EPOCHS = 40
-        LEARNING_RATE = 1e-3
-        ANNOTATIONS_FILE = "SentenceFilenames.csv"
-        AUDIO_DIR = "AudioWAV"
-        SAMPLE_RATE = 16000
-        NUM_SAMPLES = SAMPLE_RATE*4
-
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-
-        print("Device: ", device)
-
-
-
-        mel_spectogram = torchaudio.transforms.MelSpectrogram(
-            sample_rate=SAMPLE_RATE,
-            n_fft=1024,
-            hop_length=512,
-            n_mels=64
-        )
-
-        usd = CremaSoundDataset(ANNOTATIONS_FILE,
-                                AUDIO_DIR,
-                                mel_spectogram,
-                                SAMPLE_RATE,
-                                NUM_SAMPLES,
-                                device)
-        torch.manual_seed(42)
-        train_dataloader, test_dataloader = CremaSoundDataset.create_data_loader(usd, batch_size=BATCH_SIZE, train_ratio=0.7, device=device)
-
-        torch.manual_seed(42)
-        model_0 = CNN_Net().to(device)
-
-        loss_fn = nn.CrossEntropyLoss()
-        optimizer = torch.optim.AdamW(model_0.parameters(), lr=1e-3)
-
-        num_training_steps = EPOCHS * len(train_dataloader)
-        lr_scheduler = get_scheduler(name="linear", optimizer=optimizer, num_warmup_steps=0, num_training_steps=num_training_steps)
-        progress_bar = tqdm(range(num_training_steps))
-
-
-        wandb.init(project="crema_evaluation_with_fairness", 
-                name="cnn based train run",
-                config={})
-        model_0.train()
-        train(model_0, train_dataloader, train_dataloader, loss_fn, optimizer, device, EPOCHS)
-        torch.save(model_0.state_dict(), "cnn_param.pth")
+if __name__ == "__main__":
+    train_with_optim()
