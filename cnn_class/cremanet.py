@@ -99,7 +99,7 @@ class OptimizedCremaNet(nn.Module):
 
     def _create_classifier(self):
         in_features = self._get_conv_output()
-        hidden_size = self.trial.suggest_categorical('hidden_size', [64, 128, 256, 512]) if self.trial else 256
+        hidden_size = self.trial.suggest_categorical('hidden_size', [64, 128]) if self.trial else 64
         num_layers = self.trial.suggest_int('num_fc_layers', 1, 3) if self.trial else 2
         
         layers = []

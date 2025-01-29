@@ -64,7 +64,7 @@ def test_step(model, data, loss_fn, device, lr_scheduler, epoch):
     })
 
 
-def train(model, train_data, test_data, loss_fn, optim, device, epochs):
+def train(model, train_data, test_data, loss_fn, optim, device, epochs, lr_scheduler=None):
     for i in range(epochs):
         print("epoch: ", i)
         train_step(model, train_data, loss_fn, optim, device, lr_scheduler)
@@ -112,7 +112,7 @@ def objective(trial):
 
     # Training loop
     best_acc = 0
-    for epoch in range(30):
+    for epoch in tqdm(range(20)):
         train_step(model, train_dataloader, criterion, optimizer, device, scheduler)
         # Validation
         model.eval()
@@ -143,7 +143,7 @@ def objective(trial):
 
 def train_without_optim():
     BATCH_SIZE = 16
-    EPOCHS = 40
+    EPOCHS = 150
     LEARNING_RATE = 1e-3
     ANNOTATIONS_FILE = "SentenceFilenames.csv"
     AUDIO_DIR = "AudioWAV"
@@ -197,7 +197,7 @@ def train_with_optim():
             pruner=optuna.pruners.MedianPruner()
         )
 
-    study.optimize(objective, n_trials=50, timeout=3600*6)
+    study.optimize(objective, n_trials=30, timeout=3600*6)
 
     print("Best trial:")
     trial = study.best_trial
@@ -207,4 +207,4 @@ def train_with_optim():
         print(f"    {key}: {value}")
 
 if __name__ == "__main__":
-    train_with_optim()
+    train_without_optim()
