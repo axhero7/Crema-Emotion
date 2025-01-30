@@ -5,12 +5,12 @@ from cremadata import CremaSoundDataset
 from cremanet import CNN_Net, OptimizedCremaNet
 import torchaudio
 from transformers import get_scheduler
-# import wandb
+import wandb
 import optuna
 from tqdm import tqdm
 from sklearn.metrics import classification_report, confusion_matrix, f1_score, accuracy_score
 
-def train_step(model, data, loss_fn, optim, device, lr_scheduler):
+def train_step(model, data, loss_fn, optim, device, lr_scheduler, progress_bar):
     for index, (input, label) in enumerate(data):
         input, label = input.to(device), label.to(device)
 
@@ -21,11 +21,11 @@ def train_step(model, data, loss_fn, optim, device, lr_scheduler):
         if lr_scheduler != None: lr_scheduler.step() 
 
         optim.zero_grad()
-        # progress_bar.update(1)
-        # wandb.log({
-        #     "train_loss": loss.item(),
-        #     "learning_rate": lr_scheduler.get_last_lr()[0] 
-        # })
+        progress_bar.update(1)
+        wandb.log({
+            "train_loss": loss.item(),
+            "learning_rate": lr_scheduler.get_last_lr()[0] 
+        })
         
         if index % 30 == 0:
             outputs = nn.functional.softmax(y_pred,dim=1)
@@ -64,10 +64,10 @@ def test_step(model, data, loss_fn, device, lr_scheduler, epoch):
     })
 
 
-def train(model, train_data, test_data, loss_fn, optim, device, epochs, lr_scheduler=None):
+def train(model, train_data, test_data, loss_fn, optim, device, epochs, lr_scheduler=None, progress_bar=None):
     for i in range(epochs):
         print("epoch: ", i)
-        train_step(model, train_data, loss_fn, optim, device, lr_scheduler)
+        train_step(model, train_data, loss_fn, optim, device, lr_scheduler, progress_bar)
         test_step(model, test_data, loss_fn, device, lr_scheduler, i)
 
 def objective(trial):
@@ -187,7 +187,7 @@ def train_without_optim():
             name="cnn based train run",
             config={})
     model_0.train()
-    train(model_0, train_dataloader, train_dataloader, loss_fn, optimizer, device, EPOCHS)
+    train(model_0, train_dataloader, train_dataloader, loss_fn, optimizer, device, EPOCHS, progress_bar)
     torch.save(model_0.state_dict(), "cnn_param.pth")
 
 def train_with_optim():
