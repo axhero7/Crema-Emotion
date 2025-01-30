@@ -24,7 +24,7 @@ def train_step(model, data, loss_fn, optim, device, lr_scheduler, progress_bar):
         progress_bar.update(1)
         wandb.log({
             "train_loss": loss.item(),
-            "learning_rate": lr_scheduler.get_last_lr()[0] 
+            # "learning_rate": lr_scheduler.get_last_lr()[0] 
         })
         
         if index % 30 == 0:
@@ -70,75 +70,75 @@ def train(model, train_data, test_data, loss_fn, optim, device, epochs, lr_sched
         train_step(model, train_data, loss_fn, optim, device, lr_scheduler, progress_bar)
         test_step(model, test_data, loss_fn, device, lr_scheduler, i)
 
-def objective(trial):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+# def objective(trial):
+#     device = "cuda" if torch.cuda.is_available() else "cpu"
     
-    # Hyperparameters
-    batch_size = trial.suggest_categorical('batch_size', [16, 32, 64])
-    lr = trial.suggest_float('lr', 1e-5, 1e-3, log=True)
-    weight_decay = trial.suggest_float('weight_decay', 1e-6, 1e-3, log=True)
+#     # Hyperparameters
+#     batch_size = trial.suggest_categorical('batch_size', [16, 32, 64])
+#     lr = trial.suggest_float('lr', 1e-5, 1e-3, log=True)
+#     weight_decay = trial.suggest_float('weight_decay', 1e-6, 1e-3, log=True)
 
-    print("batch_size: ", batch_size)
-    print("lr: ", lr)
-    print("weight_decay: ", weight_decay)
-    print("=====================================")
-    # Data loading
-    mel_spectrogram = torchaudio.transforms.MelSpectrogram(
-        sample_rate=16000,
-        n_fft=1024,
-        hop_length=512,
-        n_mels=64
-    )
-    ANNOTATIONS_FILE = "SentenceFilenames.csv"
-    AUDIO_DIR = "AudioWAV"
-    SAMPLE_RATE = 16000
-    NUM_SAMPLES = SAMPLE_RATE*4
+#     print("batch_size: ", batch_size)
+#     print("lr: ", lr)
+#     print("weight_decay: ", weight_decay)
+#     print("=====================================")
+#     # Data loading
+#     mel_spectrogram = torchaudio.transforms.MelSpectrogram(
+#         sample_rate=16000,
+#         n_fft=1024,
+#         hop_length=512,
+#         n_mels=64
+#     )
+#     ANNOTATIONS_FILE = "SentenceFilenames.csv"
+#     AUDIO_DIR = "AudioWAV"
+#     SAMPLE_RATE = 16000
+#     NUM_SAMPLES = SAMPLE_RATE*4
     
-    usd = CremaSoundDataset(ANNOTATIONS_FILE,
-                                AUDIO_DIR,
-                                mel_spectrogram,
-                                SAMPLE_RATE,
-                                NUM_SAMPLES,
-                                device)
-    torch.manual_seed(42)
-    train_dataloader, test_dataloader = CremaSoundDataset.create_data_loader(dataset=usd, batch_size=batch_size, train_ratio=0.7, device=device)
-    # Model
-    model = OptimizedCremaNet(trial).to(device)
+#     usd = CremaSoundDataset(ANNOTATIONS_FILE,
+#                                 AUDIO_DIR,
+#                                 mel_spectrogram,
+#                                 SAMPLE_RATE,
+#                                 NUM_SAMPLES,
+#                                 device)
+#     torch.manual_seed(42)
+#     train_dataloader, test_dataloader = CremaSoundDataset.create_data_loader(dataset=usd, batch_size=batch_size, train_ratio=0.7, device=device)
+#     # Model
+#     model = OptimizedCremaNet(trial).to(device)
     
-    # Optimization
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
-    criterion = nn.CrossEntropyLoss()
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=20)
+#     # Optimization
+#     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+#     criterion = nn.CrossEntropyLoss()
+#     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=20)
 
-    # Training loop
-    best_acc = 0
-    for epoch in tqdm(range(20)):
-        train_step(model, train_dataloader, criterion, optimizer, device, scheduler)
-        # Validation
-        model.eval()
-        correct = 0
-        total = 0
-        with torch.no_grad():
-            for inputs, labels in test_dataloader:
-                outputs = model(inputs)
-                preds = torch.argmax(outputs, dim=1)
-                correct += (preds.cpu().numpy() == labels.cpu().numpy()).sum().item()
-                total += labels.size(0)
+#     # Training loop
+#     best_acc = 0
+#     for epoch in tqdm(range(20)):
+#         train_step(model, train_dataloader, criterion, optimizer, device, scheduler)
+#         # Validation
+#         model.eval()
+#         correct = 0
+#         total = 0
+#         with torch.no_grad():
+#             for inputs, labels in test_dataloader:
+#                 outputs = model(inputs)
+#                 preds = torch.argmax(outputs, dim=1)
+#                 correct += (preds.cpu().numpy() == labels.cpu().numpy()).sum().item()
+#                 total += labels.size(0)
         
-        val_acc = 100 * correct / total
-        trial.report(val_acc, epoch)
-        print("=====================================")
-        print("validation: ", val_acc, " on epoch :", epoch)
-        print("=====================================")
+#         val_acc = 100 * correct / total
+#         trial.report(val_acc, epoch)
+#         print("=====================================")
+#         print("validation: ", val_acc, " on epoch :", epoch)
+#         print("=====================================")
         
         
-        if trial.should_prune():
-            raise optuna.exceptions.TrialPruned()
+#         if trial.should_prune():
+#             raise optuna.exceptions.TrialPruned()
         
-        if val_acc > best_acc:
-            best_acc = val_acc
+#         if val_acc > best_acc:
+#             best_acc = val_acc
     
-    return best_acc
+#     return best_acc
 
 
 def train_without_optim():
@@ -172,14 +172,15 @@ def train_without_optim():
     torch.manual_seed(42)
     train_dataloader, test_dataloader = CremaSoundDataset.create_data_loader(usd, batch_size=BATCH_SIZE, train_ratio=0.7, device=device)
 
-    torch.manual_seed(42)
+    torch.manual_seed(41)
     model_0 = CNN_Net().to(device)
 
     loss_fn = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(model_0.parameters(), lr=1e-3)
 
     num_training_steps = EPOCHS * len(train_dataloader)
-    lr_scheduler = get_scheduler(name="linear", optimizer=optimizer, num_warmup_steps=0, num_training_steps=num_training_steps)
+    # # lr_scheduler = get_scheduler(name="linear", optimizer=optimizer, num_warmup_steps=0, num_training_steps=num_training_steps)
+    # lr = 1e-3
     progress_bar = tqdm(range(num_training_steps))
 
 
@@ -187,24 +188,24 @@ def train_without_optim():
             name="cnn based train run",
             config={})
     model_0.train()
-    train(model=model_0, train_data=train_dataloader, test_data=test_dataloader, loss_fn=loss_fn, optim=optimizer, device=device, epochs=EPOCHS, lr_scheduler=lr_scheduler, progress_bar=progress_bar)
+    train(model=model_0, train_data=train_dataloader, test_data=test_dataloader, loss_fn=loss_fn, optim=optimizer, device=device, epochs=EPOCHS, lr_scheduler=None, progress_bar=progress_bar)
     torch.save(model_0.state_dict(), "cnn_param.pth")
 
-def train_with_optim():
-    study = optuna.create_study(
-            direction='maximize',
-            sampler=optuna.samplers.TPESampler(),
-            pruner=optuna.pruners.MedianPruner()
-        )
+# def train_with_optim():
+#     study = optuna.create_study(
+#             direction='maximize',
+#             sampler=optuna.samplers.TPESampler(),
+#             pruner=optuna.pruners.MedianPruner()
+#         )
 
-    study.optimize(objective, n_trials=30, timeout=3600*6)
+#     study.optimize(objective, n_trials=30, timeout=3600*6)
 
-    print("Best trial:")
-    trial = study.best_trial
-    print(f"  Value (Accuracy): {trial.value:.2f}%")
-    print("  Params:")
-    for key, value in trial.params.items():
-        print(f"    {key}: {value}")
+#     print("Best trial:")
+#     trial = study.best_trial
+#     print(f"  Value (Accuracy): {trial.value:.2f}%")
+#     print("  Params:")
+#     for key, value in trial.params.items():
+#         print(f"    {key}: {value}")
 
 if __name__ == "__main__":
     train_without_optim()
