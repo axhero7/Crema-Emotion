@@ -187,7 +187,7 @@ def train_without_optim():
             name="cnn based train run",
             config={})
     model_0.train()
-    train(model_0, train_dataloader, train_dataloader, loss_fn, optimizer, device, EPOCHS, progress_bar)
+    train(model=model_0, train_data=train_dataloader, test_data=test_dataloader, loss_fn=loss_fn, optim=optimizer, device=device, epochs=EPOCHS, lr_scheduler=lr_scheduler, progress_bar=progress_bar)
     torch.save(model_0.state_dict(), "cnn_param.pth")
 
 def train_with_optim():
