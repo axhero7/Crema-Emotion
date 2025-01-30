@@ -14,7 +14,8 @@ class CNN_Net(nn.Module):
                 padding=2
             ),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2)
+            nn.MaxPool2d(kernel_size=2),
+            nn.Dropout2d(0.3)
         )
         self.conv2 = nn.Sequential(
             nn.Conv2d(
@@ -25,7 +26,8 @@ class CNN_Net(nn.Module):
                 padding=2
             ),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2)
+            nn.MaxPool2d(kernel_size=2),
+            nn.Dropout2d(0.3)
         )
         self.conv3 = nn.Sequential(
             nn.Conv2d(
@@ -36,7 +38,8 @@ class CNN_Net(nn.Module):
                 padding=2
             ),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2)
+            nn.MaxPool2d(kernel_size=2),
+            nn.Dropout2d(0.3)
         )
         self.conv4 = nn.Sequential(
             nn.Conv2d(
@@ -47,7 +50,8 @@ class CNN_Net(nn.Module):
                 padding=2
             ),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2)
+            nn.MaxPool2d(kernel_size=2),
+            nn.Dropout2d(0.3)
         )
         self.conv5 = nn.Sequential(
             nn.Conv2d(
@@ -58,17 +62,19 @@ class CNN_Net(nn.Module):
                 padding=2
             ),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2)
+            nn.MaxPool2d(kernel_size=2),
+            nn.Dropout2d(0.3)
         )
         self.flatten = nn.Flatten(start_dim=1)
-        self.linear_1 = nn.Linear(128*3*5, 20)
-        self.linear_2 = nn.Linear(20, 6)
+        self.linear_1 = nn.Linear(128*3*5, 64)
+        self.dropout1 = nn.Dropout(0.5)
+        self.linear_2 = nn.Linear(64, 6)
         self.softmax = nn.Softmax(dim=1)
     
     def forward(self, x):
         x = self.conv5(self.conv4(self.conv3(self.conv2(self.conv1(x)))))
         x = x.view(-1, 128*3*5)
-        x = self.linear_2(self.linear_1(x))
+        x = self.linear_2(self.dropout1(self.linear_1(x)))
         return x
     
 class OptimizedCremaNet(nn.Module):
