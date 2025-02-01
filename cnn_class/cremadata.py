@@ -3,11 +3,15 @@ import pandas as pd
 import torchaudio
 import torch
 import os
-class CremaSoundDataset(Dataset):
+import numpy as np
 
+class CremaSoundDataset(Dataset):
     def __init__(self, annotations_file, audio_dir, transformation, target_sample_rate, num_samples, device) -> None:
         super().__init__()
-        self.annotations = pd.read_csv(annotations_file)
+        if isinstance(annotations_file, str):  # Accept both path or DataFrame
+            self.annotations = pd.read_csv(annotations_file)
+        else:
+            self.annotations = annotations_file
         self.audio_dir = audio_dir
         self.device = device
         self.transformation = transformation.to(self.device)
@@ -30,7 +34,8 @@ class CremaSoundDataset(Dataset):
         return signal, label
     
     def _get_audio_sample_path(self, index):
-        path = os.path.join(self.audio_dir, self.annotations.loc[index, "Filename"] + ".wav")
+        filename = self.annotations.iloc[index]["Filename"]
+        path = os.path.join(self.audio_dir, filename + ".wav")
         return path
     
     def _get_audio_sample_label(self, index):
@@ -73,3 +78,5 @@ class CremaSoundDataset(Dataset):
         train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=10, shuffle=True)
         test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=10, shuffle=False)
         return train_dataloader, test_dataloader
+   
+
