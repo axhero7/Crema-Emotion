@@ -9,6 +9,7 @@ from cremanet import CNN_Net
 # from train import *
 import os
 from tqdm.auto import tqdm
+import torchaudio
 import wandb
 from sklearn.metrics import classification_report, confusion_matrix, f1_score, accuracy_score
 from fairlearn.metrics import MetricFrame, demographic_parity_difference, equalized_odds_difference
@@ -19,7 +20,7 @@ import pandas as pd
 
 
 BATCH_SIZE = 16
-EPOCHS = 40
+EPOCHS = 150
 LEARNING_RATE = 1e-3
 ANNOTATIONS_FILE = "SentenceFilenames.csv"
 AUDIO_DIR = "AudioWAV"
@@ -30,72 +31,76 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 print("Device: ", device)
 
+full_annotations = pd.read_csv(ANNOTATIONS_FILE)
 
+train_ratio = 0.7
+train_size = int(train_ratio * len(full_annotations))
+test_size = len(full_annotations) - train_size
+train_indices, test_indices = train_size, train_size + test_size
 
-mel_spectogram = torchaudio.transforms.MelSpectrogram(
+test_transforms = torchaudio.transforms.MelSpectrogram(
     sample_rate=SAMPLE_RATE,
     n_fft=1024,
     hop_length=512,
     n_mels=64
 )
 
-usd = CremaSoundDataset(ANNOTATIONS_FILE,
-                        AUDIO_DIR,
-                        mel_spectogram,
-                        SAMPLE_RATE,
-                        NUM_SAMPLES,
-                        device)
-torch.manual_seed(42)
-train_dataloader, test_dataloader = create_data_loader(usd, batch_size=BATCH_SIZE, train_ratio=0.7, device=device)
-
+test_dataset = CremaSoundDataset(
+    full_annotations.iloc[train_indices:test_indices].reset_index(drop=True),  
+    AUDIO_DIR,
+    test_transforms,
+    SAMPLE_RATE,
+    NUM_SAMPLES,
+    device
+)
+test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 torch.manual_seed(42)
 model_0 = CNN_Net().to(device)
 
 
-progress_bar = tqdm(range(num_training_steps))
+progress_bar = tqdm(range(EPOCHS * len(test_dataset)))
 
-wandb.init(project="crema_evaluation_with_fairness", 
-           name="evaluation_run",
-           config={})
+# wandb.init(project="crema_evaluation_with_fairness", 
+#            name="evaluation_run",
+#            config={})
 
-validation_results = {"ActorID": [], "true_labels": [], "predictions": []}
     
-# Get predictions on test data
-model.eval()
-for batch in test_dataloader:
-    actor_ids = batch["path"]
-    true_labels_batch = batch["labels"].numpy()
-    
+# model_0.load_state_dict("cnn_parameters_150.pth")
+
+def validation_pass(model, data):
+    validation_results = {"ActorID": [], "true_labels": [], "predictions": []}
     with torch.no_grad():
-        inputs = {"input_features": batch["input_features"].to(device), "labels": batch["labels"].to(device)}
-        outputs = model(**inputs)
-        preds = outputs.logits.argmax(dim=-1).cpu().numpy()
+        model.eval()
+        for index, (input, label, actor_ids) in enumerate(data):
+            input, label, actor_ids = input.to(device), label.to(device), list(actor_ids)
+            y_pred = model(input)
+            outputs = torch.nn.functional.softmax(y_pred,0)
+            outputs = outputs.argmax(dim=1)
 
-    # Append results to dictionary
-    validation_results["ActorID"].extend(actor_ids)
-    validation_results["true_labels"].extend(true_labels_batch)
-    validation_results["predictions"].extend(preds)
+            validation_results["ActorID"].extend(actor_ids)
+            validation_results["true_labels"].extend(list(label.cpu().detach()))
+            validation_results["predictions"].extend(list(outputs.cpu().detach()))
     
-    progress_bar.update(1)
+        progress_bar.update(1)
+    return validation_results
 
 
 
-results_df = pd.DataFrame(validation_results)
-
+results_df = pd.DataFrame(validation_pass(model_0, test_dataloader))
+results_df.to_csv("validation_pass.csv")
 demographics_path =  "VideoDemographics.csv"
 demographics_df = pd.read_csv(demographics_path)
 
-# Merge predictions with demographic info using actor ID
 merged_data = results_df.merge(demographics_df, on="ActorID")
 
 true_labels = merged_data["true_labels"]
 predictions = merged_data["predictions"]
 
-# Classification Report
 report = classification_report(true_labels, predictions, output_dict=True)
+print(report)
 wandb.log({"classification_report": report})
 
-# Confusion Matrix
+
 conf_matrix = confusion_matrix(true_labels, predictions)
 fig, ax = plt.subplots(figsize=(8, 6))
 sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues",

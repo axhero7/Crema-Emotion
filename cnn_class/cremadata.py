@@ -31,6 +31,19 @@ class CremaSoundDataset(Dataset):
         signal = self._right_pad_if_necessary(signal)
         signal = self._cut_if_necessary(signal)
         signal = self.transformation(signal)
+        return signal, label, self.annotations.iloc[index]["Filename"][:4]
+    
+    def get_with_id(self, index):
+        audio_sample_path = self._get_audio_sample_path(index)
+        label = self._get_audio_sample_label(index)
+        signal, sr = torchaudio.load(audio_sample_path)
+        signal = signal.to(self.device)
+        signal = self._resample_if_necessary(signal, sr)
+        signal = self._mix_down_if_necessary(signal)
+        signal = self._right_pad_if_necessary(signal)
+        signal = self._cut_if_necessary(signal)
+        signal = self.transformation(signal)
+        # print(audio_sample_path.split("\\")[1][:4])
         return signal, label
     
     def _get_audio_sample_path(self, index):

@@ -11,17 +11,17 @@ import pandas as pd
 from tqdm import tqdm
 from sklearn.metrics import classification_report, confusion_matrix, f1_score, accuracy_score
 
-class AddWhiteNoise(nn.Module):  # <--- Subclass nn.Module
+class AddWhiteNoise(nn.Module):
     def __init__(self, noise_factor=0.005):
         super().__init__()
         self.noise_factor = noise_factor
 
     def forward(self, waveform):
-        with torch.no_grad():  # Disable gradient tracking for augmentation
+        with torch.no_grad():  
             noise = torch.randn_like(waveform) * self.noise_factor
             return waveform + noise
 
-class TimeShift(nn.Module):  # <--- Subclass nn.Module
+class TimeShift(nn.Module):  
     def __init__(self, max_shift=0.2):
         super().__init__()
         self.max_shift = max_shift
@@ -37,7 +37,7 @@ class TimeShift(nn.Module):  # <--- Subclass nn.Module
 
 
 def train_step(model, data, loss_fn, optim, device, lr_scheduler, progress_bar):
-    for index, (input, label) in enumerate(data):
+    for index, (input, label, _) in enumerate(data):
         input, label = input.to(device), label.to(device)
 
         y_pred = model(input)
@@ -56,18 +56,15 @@ def train_step(model, data, loss_fn, optim, device, lr_scheduler, progress_bar):
         if index % 30 == 0:
             outputs = nn.functional.softmax(y_pred,dim=1)
             outputs = torch.argmax(y_pred, dim=1)
-            # print(outputs)
-            # print(label)
             correct = torch.eq(label, outputs).sum().item()
             acc = (correct / len(y_pred)) * 100
             print(f"train loss: {loss.item()}, train acc: {acc}")
-            # print(lr_scheduler.get_last_lr()[0])
 def test_step(model, data, loss_fn, device, lr_scheduler, epoch):
     true_labels, predictions = [], []
     total_loss = 0
     with torch.no_grad():
         model.eval()
-        for index, (input, label) in enumerate(data):
+        for index, (input, label, _) in enumerate(data):
             input, label = input.to(device), label.to(device)
 
             y_pred = model(input)
@@ -119,9 +116,7 @@ if __name__ == "__main__":
     train_ratio = 0.7
     train_size = int(train_ratio * len(full_annotations))
     test_size = len(full_annotations) - train_size
-    train_indices, test_indices = random_split(
-        range(len(full_annotations)), [train_size, test_size]
-    )
+    train_indices, test_indices = train_size, train_size + test_size
     
     train_transforms = torch.nn.Sequential(
         AddWhiteNoise(noise_factor=0.005),
@@ -143,7 +138,7 @@ if __name__ == "__main__":
     
     # Create separate datasets
     train_dataset = CremaSoundDataset(
-        full_annotations.iloc[train_indices.indices].reset_index(drop=True),  # Reset index
+        full_annotations.iloc[:train_indices].reset_index(drop=True),  # Reset index
         AUDIO_DIR,
         train_transforms,
         SAMPLE_RATE,
@@ -153,7 +148,7 @@ if __name__ == "__main__":
 
     
     test_dataset = CremaSoundDataset(
-        full_annotations.iloc[test_indices.indices].reset_index(drop=True),  # Reset index
+        full_annotations.iloc[train_indices:test_indices].reset_index(drop=True),  # Reset index
         AUDIO_DIR,
         test_transforms,
         SAMPLE_RATE,
@@ -198,7 +193,7 @@ if __name__ == "__main__":
             config={})
     model_0.train()
     train(model=model_0, train_data=train_dataloader, test_data=test_dataloader, loss_fn=loss_fn, optim=optimizer, device=device, epochs=EPOCHS, lr_scheduler=lr_scheduler, progress_bar=progress_bar)
-    torch.save(model_0.state_dict(), "cnn_param.pth")
+    torch.save(model_0.state_dict(), "cnn_parameters_150.pth")
 
 
 
