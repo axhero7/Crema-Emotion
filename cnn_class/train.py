@@ -165,7 +165,7 @@ if __name__ == "__main__":
 
     else:
         BATCH_SIZE = 16
-        EPOCHS = 40
+        EPOCHS = 100
         LEARNING_RATE = 1e-3
         ANNOTATIONS_FILE = "SentenceFilenames.csv"
         AUDIO_DIR = "AudioWAV"
