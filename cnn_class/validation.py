@@ -60,9 +60,9 @@ model_0.load_state_dict(torch.load('cnn_param.pth'))
 
 progress_bar = tqdm(range(len(test_dataloader)))
 
-# wandb.init(project="crema_evaluation_with_fairness", 
-#            name="evaluation_run",
-#            config={})
+wandb.init(project="crema_evaluation_with_fairness", 
+           name="evaluation_run",
+           config={})
 
     
 
