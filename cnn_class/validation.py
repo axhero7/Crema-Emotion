@@ -91,7 +91,7 @@ results_df.to_csv("validation_pass.csv")
 demographics_path =  "VideoDemographics.csv"
 demographics_df = pd.read_csv(demographics_path)
 
-merged_data = results_df.merge(demographics_df, on="ActorID")
+merged_data = results_df.concat(demographics_df, on="ActorID")
 
 true_labels = merged_data["true_labels"]
 predictions = merged_data["predictions"]
