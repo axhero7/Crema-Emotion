@@ -31,7 +31,7 @@ class CremaSoundDataset(Dataset):
         signal = self._right_pad_if_necessary(signal)
         signal = self._cut_if_necessary(signal)
         signal = self.transformation(signal)
-        return signal, label, self.annotations.iloc[index]["Filename"][:4]
+        return signal, label, int(self.annotations.iloc[index]["Filename"][:4])
     
     def get_with_id(self, index):
         audio_sample_path = self._get_audio_sample_path(index)
