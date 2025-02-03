@@ -3,11 +3,15 @@ import pandas as pd
 import torchaudio
 import torch
 import os
-class CremaSoundDataset(Dataset):
+import numpy as np
 
+class CremaSoundDataset(Dataset):
     def __init__(self, annotations_file, audio_dir, transformation, target_sample_rate, num_samples, device) -> None:
         super().__init__()
-        self.annotations = pd.read_csv(annotations_file)
+        if isinstance(annotations_file, str):  # Accept both path or DataFrame
+            self.annotations = pd.read_csv(annotations_file)
+        else:
+            self.annotations = annotations_file
         self.audio_dir = audio_dir
         self.device = device
         self.transformation = transformation.to(self.device)
@@ -27,10 +31,24 @@ class CremaSoundDataset(Dataset):
         signal = self._right_pad_if_necessary(signal)
         signal = self._cut_if_necessary(signal)
         signal = self.transformation(signal)
+        return signal, label, int(self.annotations.iloc[index]["Filename"][:4])
+    
+    def get_with_id(self, index):
+        audio_sample_path = self._get_audio_sample_path(index)
+        label = self._get_audio_sample_label(index)
+        signal, sr = torchaudio.load(audio_sample_path)
+        signal = signal.to(self.device)
+        signal = self._resample_if_necessary(signal, sr)
+        signal = self._mix_down_if_necessary(signal)
+        signal = self._right_pad_if_necessary(signal)
+        signal = self._cut_if_necessary(signal)
+        signal = self.transformation(signal)
+        # print(audio_sample_path.split("\\")[1][:4])
         return signal, label
     
     def _get_audio_sample_path(self, index):
-        path = os.path.join(self.audio_dir, self.annotations.loc[index, "Filename"] + ".wav")
+        filename = self.annotations.iloc[index]["Filename"]
+        path = os.path.join(self.audio_dir, filename + ".wav")
         return path
     
     def _get_audio_sample_label(self, index):
@@ -73,3 +91,5 @@ class CremaSoundDataset(Dataset):
         train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=10, shuffle=True)
         test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=10, shuffle=False)
         return train_dataloader, test_dataloader
+   
+

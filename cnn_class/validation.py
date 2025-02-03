@@ -10,11 +10,11 @@ from cremanet import CNN_Net
 import os
 from tqdm.auto import tqdm
 import torchaudio
-# import wandb
+import wandb
 from sklearn.metrics import classification_report, confusion_matrix, f1_score, accuracy_score
-# from fairlearn.metrics import MetricFrame, demographic_parity_difference, equalized_odds_difference
+from fairlearn.metrics import MetricFrame, demographic_parity_difference, equalized_odds_difference
 import matplotlib.pyplot as plt
-# import seaborn as sns
+import seaborn as sns
 import pandas as pd
 
 
