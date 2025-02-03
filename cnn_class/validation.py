@@ -20,7 +20,6 @@ import pandas as pd
 
 
 BATCH_SIZE = 16
-EPOCHS = 150
 LEARNING_RATE = 1e-3
 ANNOTATIONS_FILE = "SentenceFilenames.csv"
 AUDIO_DIR = "AudioWAV"
@@ -56,16 +55,16 @@ test_dataset = CremaSoundDataset(
 test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 torch.manual_seed(42)
 model_0 = CNN_Net().to(device)
+model_0.load_state_dict(torch.load('cnn_param.pth'))
 
 
-progress_bar = tqdm(range(EPOCHS * len(test_dataset)))
+progress_bar = tqdm(range(len(test_dataloader)))
 
 # wandb.init(project="crema_evaluation_with_fairness", 
 #            name="evaluation_run",
 #            config={})
 
     
-# model_0.load_state_dict("cnn_parameters_150.pth")
 
 def validation_pass(model, data):
     validation_results = {"ActorID": [], "true_labels": [], "predictions": []}
@@ -77,11 +76,12 @@ def validation_pass(model, data):
             outputs = torch.nn.functional.softmax(y_pred,0)
             outputs = outputs.argmax(dim=1)
 
-            validation_results["ActorID"].extend(actor_ids)
-            validation_results["true_labels"].extend(list(label.cpu().detach()))
-            validation_results["predictions"].extend(list(outputs.cpu().detach()))
-    
-        progress_bar.update(1)
+            for index in range(len(actor_ids)):
+                validation_results["ActorID"].append(int(actor_ids[index].item()))
+                validation_results["true_labels"].append(int(label[index].item()))
+                validation_results["predictions"].append(int(outputs[index].item()))
+            progress_bar.update(1)
+
     return validation_results
 
 
@@ -90,7 +90,6 @@ results_df = pd.DataFrame(validation_pass(model_0, test_dataloader))
 results_df.to_csv("validation_pass.csv")
 demographics_path =  "VideoDemographics.csv"
 demographics_df = pd.read_csv(demographics_path)
-
 merged_data = results_df.merge(demographics_df, on="ActorID")
 
 true_labels = merged_data["true_labels"]
