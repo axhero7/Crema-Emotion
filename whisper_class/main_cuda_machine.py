@@ -64,7 +64,7 @@ def train(model, train_data, test_data, optim, device, epochs):
 if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
     EPOCHS = 25
-    BATCH_SIZE = 8
+    BATCH_SIZE = 6
 
     crema_dataset = CremaDataset("distil-whisper/distil-medium.en")
     crema_dataset.set_vector("actor-vector.hf", True)
