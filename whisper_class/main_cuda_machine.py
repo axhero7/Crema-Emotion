@@ -42,9 +42,9 @@ def test_step(model, data, device, epoch):
             preds = outputs.logits.argmax(dim=-1)
             true_labels.extend(batch["labels"].cpu().numpy())
             predictions.extend(preds.cpu().numpy())
-            # wandb.log({
-            #     "val_loss": loss.item()
-            # })
+            wandb.log({
+                "val_loss": loss.item()
+            })
     val_accuracy = accuracy_score(true_labels, predictions)
     val_f1 = f1_score(true_labels, predictions, average="weighted")
     wandb.log({
@@ -63,8 +63,8 @@ def train(model, train_data, test_data, optim, device, epochs):
 
 if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    EPOCHS = 10
-    BATCH_SIZE = 6
+    EPOCHS = 25
+    BATCH_SIZE = 8
 
     crema_dataset = CremaDataset("distil-whisper/distil-medium.en")
     crema_dataset.set_vector("actor-vector.hf", True)
@@ -93,5 +93,5 @@ if __name__ == "__main__":
             name="whisper based train run",
             config={})
     train(model=model, train_data=train_dataloader, test_data=test_dataloader, optim=optimizer, device=device, epochs=EPOCHS)
-    torch.save(model.state_dict(), "model_final.pth")
+    torch.save(model.state_dict(), "model_final_whisper.pth")
 
