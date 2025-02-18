@@ -63,7 +63,7 @@ def train(model, train_data, test_data, optim, device, epochs):
 
 if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    EPOCHS = 10
+    EPOCHS = 30
     BATCH_SIZE = 6
 
     crema_dataset = CremaDataset("distil-whisper/distil-medium.en")
