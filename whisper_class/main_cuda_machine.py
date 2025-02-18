@@ -93,5 +93,5 @@ if __name__ == "__main__":
             name="whisper based train run",
             config={})
     train(model=model, train_data=train_dataloader, test_data=test_dataloader, optim=optimizer, device=device, epochs=EPOCHS)
-    torch.save(model.state_dict(), "model_final.pth")
+    torch.save(model.state_dict(), "model_final_feb17.pth")
 
