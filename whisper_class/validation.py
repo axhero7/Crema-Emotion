@@ -70,7 +70,7 @@ for batch in test_dataloader:
 
 
 results_df = pd.DataFrame(validation_results)
-
+results_df.to_csv("validation_pass.csv")
 demographics_path =  "VideoDemographics.csv"
 demographics_df = pd.read_csv(demographics_path)
 
