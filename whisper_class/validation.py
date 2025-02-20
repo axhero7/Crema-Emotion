@@ -34,7 +34,7 @@ transformers.set_seed(42)
 model = AutoModelForAudioClassification.from_pretrained(
     crema_dataset.model_id, num_labels=num_labels, label2id=crema_dataset.label2id, id2label=crema_dataset.id2label
 )
-
+model.load_state_dict(torch.load('model_latest_1.pth'))
 
 EPOCHS=1
 
@@ -76,6 +76,7 @@ demographics_df = pd.read_csv(demographics_path)
 
 # Merge predictions with demographic info using actor ID
 merged_data = results_df.merge(demographics_df, on="ActorID")
+merged_data.to_csv("validation_pass_whisper.csv")
 
 true_labels = merged_data["true_labels"]
 predictions = merged_data["predictions"]
