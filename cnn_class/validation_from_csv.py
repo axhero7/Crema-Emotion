@@ -33,22 +33,19 @@ true_labels_id = [id2label[str(x)] for x in true_labels]
 predictions_id = [id2label[str(x)] for x in predictions]
 labels = list(id2label.values())
 
-report = classification_report(true_labels, predictions, output_dict=True)
-print(report)
-# wandb.log({"classification_report": report})
+report = classification_report(true_labels_id, predictions_id, output_dict=True)
+accuracy = accuracy_score(true_labels_id, predictions_id)
+f1 = f1_score(true_labels, predictions, average="weighted")
 
-
-conf_matrix = confusion_matrix(true_labels, predictions)
+conf_matrix = confusion_matrix(true_labels_id, predictions_id)
 fig, ax = plt.subplots(figsize=(8, 6))
 sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues",
-            xticklabels=np.unique(labels), yticklabels=np.unique(labels))
+            xticklabels=np.unique(true_labels_id), yticklabels=np.unique(true_labels_id))
 plt.xlabel("Predicted Labels")
 plt.ylabel("True Labels")
 plt.title("Confusion Matrix")
+plt.savefig("confusion_matrix_cnn.png")
 plt.show()
-# wandb.log({"confusion_matrix": wandb.Image(fig)})
-# plt.close(fig)
-
 
 sensitive_features = merged_data["Race"]  # Replace with demographic column
 metric_frame = MetricFrame(
@@ -64,27 +61,7 @@ metric_frame = MetricFrame(
 demographic_parity_diff = demographic_parity_difference(
     true_labels, predictions, sensitive_features=sensitive_features
 )
-# equalized_odds_diff = equalized_odds_difference(
-#     true_labels, predictions, sensitive_features=sensitive_features
-# )
-print("fairness_metrics", "demographic_parity_difference: ", demographic_parity_diff,
-    "group_metrics", metric_frame.by_group.to_dict())
-# # Log fairness metrics
-# wandb.log({
-#     "fairness_metrics": {
-#         "demographic_parity_difference": demographic_parity_diff,
-#         "equalized_odds_difference": equalized_odds_diff
-#     },
-#     "group_metrics": metric_frame.by_group.to_dict()
-# })
-
-# print("Final metrics and fairness assessment logged.")
-# wandb.finish()
-
-
-# metrics_data = {
-#     "Metric": ["Accuracy", "F1 Score", "Demographic Parity Difference", "Group metrics"],
-#     "Value": [accuracy, f1, demographic_parity, equalized_odds_diff]
-# }
-# metrics_df = pd.DataFrame(metrics_data)
-# metrics_df.to_csv("model_metrics.csv", index=False)
+pd.DataFrame({"Metric": ["Accuracy", "F1 Score"], "Value": [accuracy, f1]}).to_csv("metrics_cnn.csv")
+pd.DataFrame(report).transpose().to_csv("classification_report_cnn.csv")
+pd.DataFrame(metric_frame.by_group.to_dict()).transpose().to_csv("group_metrics_cnn.csv")
+pd.DataFrame({"demographic_parity_difference": [demographic_parity_diff]}).to_csv("fairness_metrics_cnn.csv")
