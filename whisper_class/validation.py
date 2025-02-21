@@ -30,7 +30,7 @@ def create_model(from_key, crema_dataset, device):
     model = AutoModelForAudioClassification.from_pretrained(
         crema_dataset.model_id, num_labels=num_labels, label2id=crema_dataset.label2id, id2label=crema_dataset.id2label
     )
-    model.load_state_dict(torch.load('model_latest_1.pth'))
+    model.load_state_dict(torch.load(from_key))
     model.to(device)
     return model
 

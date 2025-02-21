@@ -15,9 +15,9 @@ import wandb
 from sklearn.metrics import classification_report, confusion_matrix, f1_score, accuracy_score
 
 def train_step(model, data, loss_fn, optim, epoch, device):
-     model.train()
-     true_labels, predictions = [], []
-     for idx, batch in enumerate(data):
+    model.train()
+    true_labels, predictions = [], []
+    for idx, batch in enumerate(data):
         inputs = {"input_features": batch["input_features"].to(device), "labels": batch["labels"].to(device)}
         outputs = model(**inputs)
 
@@ -36,13 +36,13 @@ def train_step(model, data, loss_fn, optim, epoch, device):
             "learning_rate": lr_scheduler.get_last_lr()[0],
             "epoch" : epoch + 1
         })
-     train_accuracy = accuracy_score(true_labels, predictions)
-     train_f1 = f1_score(true_labels, predictions, average="weighted")
-     wandb.log({
-            "train_accuracy": train_accuracy,
-            "train_f1_score": train_f1,
-            "epoch": epoch + 1
-     })
+    train_accuracy = accuracy_score(true_labels, predictions)
+    train_f1 = f1_score(true_labels, predictions, average="weighted")
+    wandb.log({
+        "train_accuracy": train_accuracy,
+        "train_f1_score": train_f1,
+        "epoch": epoch + 1
+    })
 
 
 def test_step(model, data, loss_fn, device, epoch):
