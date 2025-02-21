@@ -14,13 +14,18 @@ from tqdm.auto import tqdm
 import wandb
 from sklearn.metrics import classification_report, confusion_matrix, f1_score, accuracy_score
 
-def train_step(model, data, optim, device):
+def train_step(model, data, loss_fn, optim, epoch, device):
      model.train()
+     true_labels, predictions = [], []
      for idx, batch in enumerate(data):
         inputs = {"input_features": batch["input_features"].to(device), "labels": batch["labels"].to(device)}
         outputs = model(**inputs)
-        loss = outputs.loss
+
+        loss = loss_fn(outputs.logits, batch["labels"].to(device))
         loss.backward() 
+        preds = outputs.logits.argmax(dim=-1)
+        true_labels.extend(batch["labels"].cpu().numpy())
+        predictions.extend(preds.cpu().numpy())
 
         optim.step()
         lr_scheduler.step()
@@ -28,17 +33,26 @@ def train_step(model, data, optim, device):
         progress_bar.update(1)
         wandb.log({
             "train_loss": loss.item(),
-            "learning_rate": lr_scheduler.get_last_lr()[0] 
+            "learning_rate": lr_scheduler.get_last_lr()[0],
+            "epoch" : epoch + 1
         })
+     train_accuracy = accuracy_score(true_labels, predictions)
+     train_f1 = f1_score(true_labels, predictions, average="weighted")
+     wandb.log({
+            "train_accuracy": train_accuracy,
+            "train_f1_score": train_f1,
+            "epoch": epoch + 1
+     })
 
-def test_step(model, data, device, epoch):
+
+def test_step(model, data, loss_fn, device, epoch):
     model.eval()
     true_labels, predictions = [], []
     for batch in data:
         with torch.inference_mode():
             inputs = {"input_features": batch["input_features"].to(device), "labels": batch["labels"].to(device)}
             outputs = model(**inputs)
-            loss = outputs.loss
+            loss = loss_fn(outputs.logits, batch["labels"].to(device))
             preds = outputs.logits.argmax(dim=-1)
             true_labels.extend(batch["labels"].cpu().numpy())
             predictions.extend(preds.cpu().numpy())
@@ -53,11 +67,11 @@ def test_step(model, data, device, epoch):
             "epoch": epoch + 1
     })
 
-def train(model, train_data, test_data, optim, device, epochs):
+def train(model, train_data, test_data, loss_fn, optim, device, epochs):
     for i in range(epochs):
         print("epoch: ", i)
-        train_step(model, train_data, optim, device)
-        test_step(model, test_data, device, i)
+        train_step(model, train_data, loss_fn, optim, i, device)
+        test_step(model, test_data, loss_fn, device, i)
 
 
 
@@ -79,7 +93,7 @@ if __name__ == "__main__":
     )
    
 
-    optimizer = AdamW(model.parameters(), lr=1e-5)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
 
     num_training_steps = EPOCHS * len(train_dataloader)
     lr_scheduler = get_scheduler(name="linear", optimizer=optimizer, num_warmup_steps=0, num_training_steps=num_training_steps)
@@ -92,6 +106,7 @@ if __name__ == "__main__":
     wandb.init(project="crema_evaluation_with_fairness", 
             name="whisper based train run",
             config={})
-    train(model=model, train_data=train_dataloader, test_data=test_dataloader, optim=optimizer, device=device, epochs=EPOCHS)
+    loss_fn = torch.nn.CrossEntropyLoss()
+    train(model=model, train_data=train_dataloader, test_data=test_dataloader, loss_fn=loss_fn, optim=optimizer, device=device, epochs=EPOCHS)
     torch.save(model.state_dict(), "model_final_feb17.pth")
 
