@@ -77,7 +77,7 @@ def train(model, train_data, test_data, loss_fn, optim, device, epochs):
 
 if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    EPOCHS = 30
+    EPOCHS = 10
     BATCH_SIZE = 6
 
     crema_dataset = CremaDataset("distil-whisper/distil-medium.en")
@@ -104,9 +104,9 @@ if __name__ == "__main__":
 
 
     wandb.init(project="crema_evaluation_with_fairness", 
-            name="whisper based train run",
+            name="whisper based post train run",
             config={})
     loss_fn = torch.nn.CrossEntropyLoss()
     train(model=model, train_data=train_dataloader, test_data=test_dataloader, loss_fn=loss_fn, optim=optimizer, device=device, epochs=EPOCHS)
-    torch.save(model.state_dict(), "model_final_feb17.pth")
+    torch.save(model.state_dict(), "model_final_feb20.pth")
 
